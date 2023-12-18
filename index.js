@@ -2,24 +2,26 @@ const express = require('express');
 const axios = require('axios');
 const app = express();
 
-function replace(originalString, search, replacement) {
-  const regex = new RegExp(search, 'g');
-  return originalString.replace(regex, replacement);
-}
-
 app.get('*', async (req, res) => {
-  const url = replace("https://www.discord.com" + req.url, "www.discord.com", "www.localhost:4000");
+  const url = "https://www.discord.com" + req.url;
 
-  const NoDiscordResponse = await axios.get(url, { responseType: 'arraybuffer' });
+  try {
+    const response = await axios.get(url, { responseType: 'arraybuffer' });
 
-  const contentType = NoDiscordResponse.headers['content-type'];
+    const contentType = response.headers['content-type'];
 
-  if(contentType) {
-    res.setHeader('Content-Type', contentType);
-    res.setHeader('Content-Length', NoDiscordResponse.data.length);
-    res.end(Buffer.from(NoDiscordResponse.data, 'binary'));
-  } else {
-    console.error('Error: Content-Type header is missing');
+    if (contentType) {
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Length', response.data.length);
+      res.setHeader('Cache-Control', 'public, max-age=31536000');
+
+      res.end(Buffer.from(response.data, 'binary'));
+    } else {
+      console.error('Error: Content-Type header is missing');
+      res.status(500).send('Error fetching data');
+    }
+  } catch (error) {
+    console.error('Error:', error.message);
     res.status(500).send('Error fetching data');
   }
 });
